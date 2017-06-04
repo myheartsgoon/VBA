@@ -1,0 +1,74 @@
+Dim strFolder As String
+Dim intFoundFiles As Integer
+Sub CommandButton21_Click()
+Sheet1.Cells.Clear
+Dim strFileName As String
+
+'Choose a folder
+Dim FolderName As String
+With Application.FileDialog(msoFileDialogFolderPicker)
+.AllowMultiSelect = False
+.Show
+FolderName = .SelectedItems(1) & "\"
+End With
+                                                                                                                                                                                     
+'List files
+strFolder = FolderName
+Dim strFileSpec As String: strFileSpec = strFolder & "*.*"
+Dim FileList() As String
+intFoundFiles = 1
+strFileName = Dir(strFileSpec)
+Do While Len(strFileName) > 0
+    ReDim Preserve FileList(intFoundFiles)
+    FileList(intFoundFiles) = strFileName
+    intFoundFiles = intFoundFiles + 1
+    strFileName = Dir()
+Loop
+For i = 1 To intFoundFiles - 1
+Cells(i, 1) = FileList(i)
+Next i
+
+End Sub
+
+Sub CommandButton24_Click()
+
+'Get keyword list
+Dim keyword() As String
+Dim count As Integer
+Dim j As Integer
+j = 1
+count = 1
+Set currentCell = Worksheets("Sheet1").Range("D1")
+Do While Not IsEmpty(currentCell)
+  Set nextCell = currentCell.Offset(1, 0)
+  ReDim Preserve keyword(count)
+  keyword(count) = currentCell
+  count = count + 1
+  Set currentCell = nextCell
+Loop
+
+
+Dim appWD As Word.Application
+Set appWD = CreateObject("Word.Application")
+appWD.Visible = True
+
+'Open each word file, and find keyword in the word.
+For i = 1 To intFoundFiles - 1
+Value = Cells(i, 1)
+Set wdDoc = appWD.Documents.Open(strFolder & Value)
+With wdDoc.Content
+For j = 1 To count - 1
+.Find.Execute FindText:=keyword(j), Forward:=True, MatchCase:=False, MatchWholeWord:=False, Wrap:=wdFindContinue
+If .Find.Execute = True Then
+Worksheets(1).Hyperlinks.Add Anchor:=Cells(i, 1), Address:="file:///" & strFolder & Value, TextToDisplay:=Value
+Cells(i, 2) = Cells(i, 2) & " " & keyword(j)
+End If
+Next j
+wdDoc.Save
+wdDoc.Close
+End With
+Next i
+appWD.Quit
+Set appWD = Nothing
+Set wdDoc = Nothing
+End Sub
